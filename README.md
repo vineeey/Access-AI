@@ -1,9 +1,19 @@
-# AccessAI
+<div align="center">
 
-An AI-powered **accessibility doorbell** for blind and deaf users.
+# 🔔 AccessAI
 
-A normal doorbell only says *"someone is here."* AccessAI perceives the visitor
-on your behalf and communicates through the sense you have:
+### An AI-powered accessibility doorbell for blind and deaf users
+
+*A normal doorbell only says "someone is here." AccessAI perceives the visitor on your behalf and communicates through the sense you have.*
+
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Phases](https://img.shields.io/badge/Phases-10%2F10%20complete-2ea44f)](#what-it-does-phases-110)
+[![Languages](https://img.shields.io/badge/Languages-11-orange)](#what-it-does-phases-110)
+[![Tests](https://img.shields.io/badge/tests-pytest-0A9EDC?logo=pytest&logoColor=white)](#testing)
+[![Vision](https://img.shields.io/badge/Vision-YOLOv8%20%2B%20InsightFace-blueviolet)](#what-it-does-phases-110)
+[![License](https://img.shields.io/badge/License-MIT-yellow)](#)
+
+</div>
 
 > *"Rahul is at the front door. He is carrying a parcel. Likely a delivery.
 > They said: 'Package for you.'"*
@@ -15,6 +25,21 @@ on your behalf and communicates through the sense you have:
 Built in **10 phases**, each one a working, demoable system. **This repo is
 complete through Phase 10** — every capability below is wired into a single
 event pipeline and a single dashboard.
+
+---
+
+## Table of Contents
+
+- [Quick start](#quick-start)
+- [What it does (Phases 1–10)](#what-it-does-phases-110)
+- [Phase 10: hands-free voice + hardening](#phase-10-hands-free-voice--hardening)
+- [Configuration](#configuration)
+- [HTTP API (selected)](#http-api-selected)
+- [Testing](#testing)
+- [What is real vs. placeholder](#what-is-real-vs-placeholder)
+- [Two important environment notes](#two-important-environment-notes)
+- [Cloud vision keys](#cloud-vision-keys-phase-6--vlm-scene-description--ocr)
+- [Design rules](#design-rules-held-across-all-10-phases)
 
 ---
 
@@ -218,6 +243,8 @@ active; without it the app falls back to YOLO-only signals (never blocked).
   (system `espeak`). **Torch is pinned at 2.4.1**; openWakeWord is torch-free
   (installed `--no-deps`) so the pin — and YOLO — stay intact.
 
+---
+
 ## Cloud vision keys (Phase 6 — VLM scene description + OCR)
 
 For **unknown** visitors only, AccessAI can describe the scene and read parcel
@@ -234,6 +261,8 @@ Supply two or more comma-separated keys for automatic failover. Keys are never
 logged in full (masked to last 4 chars). If no key is set or all are
 rate-limited, the app silently uses YOLO-only signals.
 
+---
+
 ## Design rules (held across all 10 phases)
 
 1. **The VisitorEvent is the spine.** Fill fields; never restructure.
@@ -243,3 +272,11 @@ rate-limited, the app silently uses YOLO-only signals.
 4. **The camera is opened only in `accessai/camera.py`.**
 5. **Conservative language** in announcements ("likely", "appears to be", never
    "definitely").
+
+<div align="center">
+
+---
+
+Built with ❤️ for accessibility · **Blind Mode** · **Deaf Mode** · **11 languages**
+
+</div>
