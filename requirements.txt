@@ -1,0 +1,158 @@
+# AccessAI - Phase 1 (Foundation) dependencies.
+# Target: Python 3.12, Linux, CPU-only.
+# Install with:
+#   python3 -m venv .venv && source .venv/bin/activate
+#   pip install -r requirements.txt
+
+# --- Vision / frames ---
+opencv-python==4.10.0.84
+numpy==1.26.4
+pillow==10.4.0
+
+# --- Web server ---
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+jinja2==3.1.4
+
+# --- Database ---
+SQLAlchemy==2.0.35
+
+# --- Face recognition (Phase 2) ---
+# insightface builds a small C extension. If `pip install` fails with a compiler
+# error, install build tools first:
+#   sudo apt install -y build-essential python3-dev
+insightface==0.7.3
+onnxruntime==1.18.1
+
+# --- Object / scene detection (Phase 3) ---
+# ultralytics pulls in torch (CPU build is fine - no GPU needed). The nano
+# weights yolov8n.pt (~6 MB) auto-download to the working dir on first predict().
+ultralytics==8.2.103
+
+# --- Text-to-speech / accessibility output (Phase 4) ---
+# pyttsx3 drives the system `espeak` binary on Linux:  sudo apt install -y espeak
+# Without espeak (or pyttsx3), spoken output is skipped gracefully - the
+# announcement still appears as text in the UI.
+pyttsx3==2.98
+
+# --- Anti-spoofing / liveness (Phase 5) ---
+# NO new hard dependency: onnxruntime + opencv + numpy (all already above) cover
+# the ONNX MiniFASNet and heuristic backends. Backend priority is A -> B -> C:
+#   A "silent-face-pip"  - OPTIONAL pip wrapper; usually not published for 3.12.
+#                          Only installed if you choose Option A; leave commented.
+#   B "onnx-minifasnet"  - place the two Silent-Face MiniFASNet models
+#                          (2.7_80x80 MiniFASNetV2 + 4_0_0_80x80 MiniFASNetV1SE,
+#                          ~2 MB total) as .onnx files in  models/antispoof/  and
+#                          they load automatically via onnxruntime.
+#   C "heuristic"        - laplacian/texture PLACEHOLDER, no files needed. NOT
+#                          production-grade; used only when A and B are absent and
+#                          logs a loud warning. Replace with B before deployment.
+# silent-face-anti-spoofing   # (Option A) uncomment only if it installs on 3.12
+
+# --- VLM scene description + OCR (Phase 6) ---
+# Cloud vision via GitHub Models (OpenAI-compatible Chat Completions). We call
+# it with plain HTTP (requests); python-dotenv loads the API keys from a local,
+# git-ignored .env file. No heavy local model needed - a local VLM can drop in
+# later behind the same VLMModule interface. Both wheels install cleanly on 3.12.
+requests==2.32.3
+python-dotenv==1.0.1
+
+# --- Speech recognition (Phase 7) ---
+# Whisper runs OFFLINE on the CPU. We feed it a 16 kHz mono float32 numpy array
+# (not a file), so ffmpeg is NOT required at runtime. Silero gives neural VAD;
+# if it's missing the module falls back to an energy/RMS gate. sounddevice needs
+# the system PortAudio lib for the live mic.
+#   System libs (mic + optional decode):  sudo apt install -y ffmpeg libportaudio2
+# NOTE: openai-whisper is an sdist whose setup.py imports pkg_resources; on a
+# stripped setuptools install it needs setuptools<81 present, e.g.:
+#   pip install "setuptools<81" && pip install --no-build-isolation openai-whisper==20231117
+openai-whisper==20231117
+sounddevice==0.4.7
+silero-vad==5.1        # if this errors, load silero via torch.hub in code instead
+
+# --- Visitor re-ID + auto-enrollment (Phase 9) ---
+# TORCH SAFETY: this phase must NOT move torch off 2.4.1. Re-ID is torch-FREE -
+# it runs an OSNet .onnx (dropped into models/reid/) via the existing onnxruntime,
+# or an HSV-histogram placeholder using only opencv + numpy (both already above).
+# Auto-enroll clusters unknown FACE embeddings with scikit-learn's DBSCAN, which
+# is torch-independent. Pin it and re-verify YOLO after installing.
+#   DELIBERATELY AVOIDED: torchreid (pulls/forces a different torch -> broke YOLO
+#   in testing). Use the ONNX/onnxruntime path instead - same ReidModule interface.
+scikit-learn==1.5.2
+
+# --- Wake word + voice commands (Phase 10) ---
+# TORCH SAFETY: openWakeWord is a pure-Python CPU detector that runs its
+# pretrained models through the EXISTING onnxruntime - it does NOT depend on
+# torch, so it cannot move torch off 2.4.1. It was installed with
+#   pip install --no-deps openwakeword==0.6.0
+# after a dry-run confirmed every transitive dep (onnxruntime, scipy, numpy,
+# tqdm, requests) was already satisfied - guaranteeing the torch pin is untouched.
+# The pretrained "hey_jarvis" model (~a few MB) auto-downloads on first use.
+# Voice commands REUSE the Phase-7 SpeechModule (Whisper) + Phase-4 TTS; no new
+# capture/announce stack. Always-on listening is OPT-IN (WAKEWORD_ALWAYS_ON);
+# push-to-talk (/listen + dashboard button) always works without it.
+#   System lib for the live mic:  sudo apt install -y libportaudio2
+openwakeword==0.6.0
+
+# --- Natural human-like TTS (Phase 11) ---
+# TORCH SAFETY: this phase replaces the robotic espeak/pyttsx3 voice WITHOUT
+# touching the pinned torch 2.4.1. That is exactly why we use the ONNX build:
+#   * kokoro-onnx  -> runs Kokoro through the EXISTING onnxruntime (a Phase-2
+#                     dep). It does NOT depend on torch. The STANDARD `kokoro`
+#                     pip package DOES depend on torch and can silently move it
+#                     (it broke YOLO in Phase 7) - DO NOT install that one.
+#   * edge-tts     -> Microsoft Neural voices over pure async HTTP. No torch.
+#   * soundfile    -> decodes edge-tts MP3 output to samples AND writes the temp
+#                     WAV we hand to the OS player (bundles libsndfile 1.1.0).
+# Playback runs in a SHORT-LIVED SUBPROCESS (aplay/paplay/pw-play/ffplay), NOT an
+# in-process PortAudio stream: sounddevice's ALSA backend corrupts the process
+# heap ("double free ... in pa_linux_alsa.c") when a playback stream is torn down
+# repeatedly in a long-lived server. A subprocess player isolates that crash. No
+# extra pip dep - one of those players ships with almost every desktop Linux.
+# Verify torch is STILL 2.4.1 and YOLO still detects after installing these.
+#
+# !! CRITICAL - kokoro-onnx 0.4.9 DECLARES numpy>=2.0.2 AND onnxruntime>=1.20.1,
+#    which would UPGRADE the pinned numpy 1.26.4 / onnxruntime 1.18.1 and can
+#    silently break YOLO/insightface (the Phase-7 failure mode). Those pins are
+#    over-tight: kokoro-onnx is pure-Python ONNX glue and runs fine on our stack.
+#    So install it WITH --no-deps and add its safe deps explicitly:
+#      pip install edge-tts==6.1.19 soundfile==0.12.1 colorlog>=6.9.0 \
+#                  espeakng-loader>=0.2.4 phonemizer-fork>=3.3.2 \
+#                  numpy==1.26.4 onnxruntime==1.18.1
+#      pip install --no-deps kokoro-onnx==0.4.9
+#    Then re-check: torch==2.4.1 and YOLO bus.jpg still detects (NOT zero).
+#
+# Kokoro model files (offline voice) are NOT on PyPI - they download ONCE (~336MB
+# total) into  models/kokoro/  from the kokoro-onnx GitHub releases:
+#   kokoro-v1.0.onnx  (~310MB):
+#     https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx
+#   voices-v1.0.bin   (~26MB):
+#     https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin
+# If that download can't happen, TTS degrades to edge-tts (online) or pyttsx3
+# (offline espeak) automatically - the system never goes silent.
+#   kokoro-onnx==0.4.9   (install with --no-deps, see the CRITICAL note above)
+edge-tts==6.1.19
+soundfile==0.12.1
+colorlog>=6.9.0
+espeakng-loader>=0.2.4
+phonemizer-fork>=3.3.2
+
+# --- Test suite (dev only) ---
+# Pure-logic unit tests live in tests/ (infer_intent, compose_announcement,
+# parse_command, re-ID cosine match, auto-enroll DBSCAN). Run with: pytest -q
+# httpx is only needed for FastAPI's TestClient in the endpoint smoke checks;
+# it is torch-free, so it does not affect the torch 2.4.1 pin.
+pytest==9.1.1
+httpx==0.28.1
+
+# ---------------------------------------------------------------------------
+# Dependencies LATER phases add (kept here as a map; do NOT install yet)
+# ---------------------------------------------------------------------------
+#                                  sounddevice==0.5.0  scipy==1.14.1
+# Phase 8  (translation):          transformers==4.44.2  torch==2.4.1
+#                                  sentencepiece==0.2.0  langdetect==1.0.9
+#
+# NOTE: piper-tts is deliberately EXCLUDED. Its dependency piper-phonemize has
+# no Python 3.12 wheel and breaks `pip install`. Phase 4 uses pyttsx3 (system
+# TTS via espeak on Linux), which always installs cleanly on 3.12.

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#05070c" />
+  <title>AccessAI — accessibility doorbell</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <a href="#current" class="skip-link">Skip to current visitor</a>
+  <header class="topbar" role="banner">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">◉</span>
+      <h1>AccessAI</h1>
+      <span class="tagline">accessibility doorbell</span>
+    </div>
+    <div class="controls">
+      <label class="mode-label">
+        Mode
+        <select id="mode">
+          <option value="both">Both</option>
+          <option value="blind">Blind</option>
+          <option value="deaf">Deaf</option>
+        </select>
+      </label>
+      <label class="mode-label">
+        Voice
+        <select id="voice-select" title="Pick the announcement voice (offline Kokoro or online neural)">
+          <option value="">…</option>
+        </select>
+      </label>
+      <label class="mode-label">
+        Language
+        <select id="lang-select">
+          <option value="en">English</option>
+          <option value="hi">Hindi</option>
+          <option value="ml">Malayalam</option>
+          <option value="ta">Tamil</option>
+          <option value="te">Telugu</option>
+          <option value="kn">Kannada</option>
+          <option value="bn">Bengali</option>
+          <option value="mr">Marathi</option>
+          <option value="gu">Gujarati</option>
+          <option value="pa">Punjabi</option>
+          <option value="ur">Urdu</option>
+        </select>
+      </label>
+      <span id="vlm-status" class="status" title="Cloud VLM scene description">vision …</span>
+      <span id="speech-status" class="status" title="Speech recognition">speech …</span>
+      <span id="translate-status" class="status" title="Multi-language translation">translate …</span>
+      <span id="reid-status" class="status" title="Visitor re-identification">re-ID …</span>
+      <span id="wake-status" class="status" title="Wake word / voice commands">voice …</span>
+      <span id="status" class="status offline" role="status" aria-live="polite">connecting…</span>
+    </div>
+  </header>
+
+  <main class="grid" role="main">
+    <!-- Live camera + ring -->
+    <section class="panel live">
+      <h2>Live View</h2>
+      <div class="video-wrap">
+        <img id="video" src="/video" alt="live camera stream" />
+      </div>
+      <button id="ring" class="ring-btn">🔔 Ring Doorbell</button>
+      <p id="ring-hint" class="muted small" style="text-align:center;margin:6px 0 0;"></p>
+
+      <!-- Phase 12: two-way "Hear Visitor" is a SEPARATE, opt-in action. The
+           doorbell above records NOTHING; audio is captured only here. -->
+      <button id="hear-btn" class="hear-btn">🎤 Hear Visitor</button>
+      <p id="listen-hint" class="muted small" style="text-align:center;margin:6px 0 0;"></p>
+
+      <!-- Voice commands (Phase 10) - the BLIND USER's own voice commands -->
+      <div class="voice-box">
+        <button id="voice-btn" class="voice-btn">🎙 Voice Command</button>
+        <button id="test-voice-btn" class="voice-btn" style="margin-top:8px;">🔊 Test voice</button>
+        <label class="wake-toggle" title="Always-listening is opt-in: it keeps the mic open (CPU + privacy).">
+          <input type="checkbox" id="wake-toggle" />
+          <span>Always listening (“<span id="wake-word">hey jarvis</span>”)</span>
+        </label>
+        <p id="voice-note" class="muted small"></p>
+        <p class="muted small">Try: “who is at the door”, “recent visitors”,
+          “how many visitors today”, “analyze the door”, “blind mode”.</p>
+      </div>
+    </section>
+
+    <!-- Current visitor -->
+    <section class="panel" aria-label="Current visitor">
+      <h2>Current Visitor</h2>
+      <div id="current" class="event-card empty" role="region"
+           aria-live="assertive" aria-atomic="true" aria-label="Latest doorbell announcement">
+        <p class="hint">No visitor yet. Click <b>Ring Doorbell</b>.</p>
+      </div>
+
+      <div class="reply-box">
+        <h3>Reply to visitor <span class="muted">(Deaf Mode)</span></h3>
+        <div class="reply-row">
+          <input id="reply-text" type="text" placeholder="Type a reply…" />
+          <button id="reply-btn">Send</button>
+        </div>
+        <p id="reply-note" class="muted small"></p>
+      </div>
+
+      <div class="reply-box">
+        <h3>Enroll a Face</h3>
+        <div class="reply-row">
+          <input id="enroll-name" type="text" placeholder="Person's name…" />
+          <button id="enroll-btn">Enroll from Live View</button>
+        </div>
+        <p id="enroll-note" class="muted small"></p>
+
+        <!-- Phase 13: register a known person from UPLOADED photos -->
+        <h4 class="sub-h">Add Known Person (upload photos)</h4>
+        <div class="reply-row">
+          <input id="up-name" type="text" placeholder="Person's name…" />
+        </div>
+        <div class="reply-row" style="margin-top:8px;">
+          <input id="up-files" type="file" accept="image/*" multiple />
+          <button id="up-btn">Upload &amp; Enroll</button>
+        </div>
+        <div id="up-previews" class="up-previews"></div>
+        <p id="up-note" class="muted small"></p>
+        <p class="muted small">Tip: upload 2–3 photos from different angles/lighting
+          — each adds an embedding under the same name and improves recognition.</p>
+
+        <!-- Phase 13: known-people list with thumbnails + delete -->
+        <h4 class="sub-h">Known People</h4>
+        <ul id="known-people" class="known-people"></ul>
+        <p class="muted small">Known: <span id="known-list">—</span></p>
+      </div>
+
+      <!-- Auto-enrollment suggestions (Phase 9) -->
+      <div id="suggest-box" class="reply-box" style="display:none;">
+        <h3>🧠 Frequent visitors <span class="muted">(save a face?)</span></h3>
+        <ul id="suggest-list" class="suggest-list"></ul>
+      </div>
+    </section>
+
+    <!-- History -->
+    <section class="panel history">
+      <div class="history-head">
+        <h2>Visitor History</h2>
+        <div class="hist-actions">
+          <button id="refresh" class="ghost">Refresh</button>
+          <button id="clear-history" class="ghost danger">Clear all</button>
+        </div>
+      </div>
+      <ul id="history-list" class="history-list"></ul>
+    </section>
+
+    <!-- System health (Phase 10) -->
+    <section class="panel health">
+      <div class="history-head">
+        <h2>System Health</h2>
+        <button id="health-refresh" class="ghost">Refresh</button>
+      </div>
+      <p id="health-meta" class="muted small"></p>
+      <ul id="health-list" class="health-list"></ul>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

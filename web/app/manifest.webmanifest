@@ -1,0 +1,17 @@
+{
+  "name": "AccessAI — Doorbell in your pocket",
+  "short_name": "AccessAI",
+  "description": "Live visitor alerts, spoken and captioned, for blind and deaf residents.",
+  "start_url": "/app",
+  "scope": "/app/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#05070c",
+  "theme_color": "#05070c",
+  "categories": ["utilities", "lifestyle"],
+  "icons": [
+    { "src": "/app/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/app/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/app/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

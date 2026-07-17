@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#05070c" />
+  <meta name="description" content="AccessAI — the doorbell in your pocket. Live visitor alerts for blind and deaf residents." />
+
+  <title>AccessAI</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/app/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/app/icons/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="AccessAI" />
+
+  <!-- Natural, high-legibility font. Degrades to the system stack offline. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="/app/app.css" />
+</head>
+<body class="mode-both" data-tab="home">
+  <a class="skip-link" href="#tab-panel">Skip to content</a>
+
+  <!-- ================= Top bar ================= -->
+  <header class="topbar" role="banner">
+    <div class="brand">
+      <span class="brand-glyph" aria-hidden="true">
+        <span class="bell">🔔</span>
+      </span>
+      <span class="brand-name">AccessAI</span>
+    </div>
+    <div class="conn" id="conn" role="status" aria-live="polite">
+      <span class="conn-dot" aria-hidden="true"></span>
+      <span class="conn-text" id="conn-text">connecting…</span>
+    </div>
+  </header>
+
+  <!-- ================= Full-screen live alert overlay ================= -->
+  <div class="alert-overlay" id="alert-overlay" role="alertdialog"
+       aria-live="assertive" aria-atomic="true" aria-hidden="true" hidden>
+    <div class="alert-card">
+      <button class="alert-close" id="alert-close" aria-label="Dismiss alert">✕</button>
+      <div class="alert-badge">🔔 Someone's at the door</div>
+      <img class="alert-snap" id="alert-snap" alt="Visitor snapshot" />
+      <p class="alert-text" id="alert-text"></p>
+      <div class="people" id="alert-people"></div>
+      <div class="alert-actions">
+        <button class="btn btn-ghost" id="alert-hear">🎤 Hear Visitor</button>
+        <button class="btn btn-primary" id="alert-ok">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Tab panels ================= -->
+  <main class="panels" id="tab-panel" role="main">
+
+    <!-- ---------- HOME ---------- -->
+    <section class="panel panel-home is-active" id="panel-home" aria-label="Home">
+      <div class="card current-card">
+        <div class="current-head">
+          <div>
+            <div class="current-title" id="home-title">Waiting for the doorbell…</div>
+            <div class="current-time" id="home-time"></div>
+          </div>
+          <img class="current-snap" id="home-snap" alt="" hidden />
+        </div>
+        <p class="announce" id="home-announce">
+          Press <strong>Test Ring</strong> below, or wait for a visitor. Live alerts
+          appear here and full-screen.
+        </p>
+        <div class="people" id="home-people"></div>
+        <div class="caption" id="home-caption" hidden></div>
+      </div>
+
+      <div class="actions-grid">
+        <button class="btn btn-primary btn-big" id="ring-btn">
+          <span class="btn-ico" aria-hidden="true">🔔</span>
+          <span>Test Ring</span>
+          <span class="btn-sub">visual only · instant</span>
+        </button>
+        <button class="btn btn-accent btn-big" id="hear-btn">
+          <span class="btn-ico" aria-hidden="true">🎤</span>
+          <span>Hear Visitor</span>
+          <span class="btn-sub" id="hear-sub">records audio</span>
+        </button>
+      </div>
+
+      <div class="card reply-card">
+        <label class="field-label" for="reply-text">💬 Reply at the door</label>
+        <div class="reply-row">
+          <input id="reply-text" type="text" inputmode="text"
+                 placeholder="I'll be right there…" autocomplete="off" />
+          <button class="btn btn-primary" id="reply-btn">Send</button>
+        </div>
+        <div class="note" id="reply-note" aria-live="polite"></div>
+      </div>
+
+      <div class="card ask-card">
+        <label class="field-label" for="ask-text">🎙 Ask AccessAI</label>
+        <div class="reply-row">
+          <input id="ask-text" type="text" inputmode="text"
+                 placeholder="Who is at the door?" autocomplete="off" />
+          <button class="btn btn-mic" id="ask-mic" aria-label="Ask by voice">🎙</button>
+          <button class="btn btn-primary" id="ask-btn">Ask</button>
+        </div>
+        <div class="note" id="ask-note" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- ---------- LIVE ---------- -->
+    <section class="panel panel-live" id="panel-live" aria-label="Live camera" hidden>
+      <div class="card live-card">
+        <div class="live-frame">
+          <img id="live-img" alt="Live camera view from the door" />
+          <div class="live-overlay" id="live-overlay">Tap “Connect” to start the live view</div>
+        </div>
+        <div class="live-actions">
+          <button class="btn btn-primary" id="live-connect">▶ Connect</button>
+          <button class="btn btn-ghost" id="live-reconnect">⟳ Reconnect</button>
+          <button class="btn btn-ghost" id="live-stop">■ Stop</button>
+        </div>
+        <p class="hint">MJPEG streams can stall on mobile — use Reconnect if it freezes.</p>
+      </div>
+    </section>
+
+    <!-- ---------- HISTORY ---------- -->
+    <section class="panel panel-history" id="panel-history" aria-label="Visit history" hidden>
+      <div class="panel-head">
+        <h2>History</h2>
+        <button class="btn btn-ghost btn-sm" id="hist-refresh">⟳ Refresh</button>
+      </div>
+      <ul class="history-list" id="history-list"></ul>
+      <div class="empty" id="history-empty" hidden>No visits yet.</div>
+    </section>
+
+    <!-- ---------- SETTINGS ---------- -->
+    <section class="panel panel-settings" id="panel-settings" aria-label="Settings" hidden>
+      <div class="card">
+        <label class="field-label" for="server-url">Server URL</label>
+        <div class="reply-row">
+          <input id="server-url" type="url" inputmode="url"
+                 placeholder="http://192.168.1.78:8000" autocomplete="off" />
+          <button class="btn btn-primary" id="server-save">Save</button>
+        </div>
+        <div class="reply-row" style="margin-top:.5rem">
+          <button class="btn btn-ghost" id="server-test">Test connection</button>
+          <span class="note" id="server-note" aria-live="polite"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="field-label">Accessibility mode</div>
+        <div class="seg" id="mode-seg" role="radiogroup" aria-label="Accessibility mode">
+          <button class="seg-btn" data-mode="blind" role="radio" aria-checked="false">👁 Blind</button>
+          <button class="seg-btn" data-mode="deaf" role="radio" aria-checked="false">👂 Deaf</button>
+          <button class="seg-btn is-on" data-mode="both" role="radio" aria-checked="true">✦ Both</button>
+        </div>
+        <p class="hint" id="mode-hint">Blind: the phone speaks. Deaf: it flashes &amp; vibrates. Both: all of it.</p>
+      </div>
+
+      <div class="card">
+        <label class="field-label" for="voice-sel">Voice</label>
+        <div class="reply-row">
+          <select id="voice-sel"></select>
+          <button class="btn btn-ghost" id="voice-test">Test</button>
+        </div>
+        <div class="note" id="voice-note" aria-live="polite"></div>
+      </div>
+
+      <div class="card">
+        <div class="field-label">Known people</div>
+        <ul class="known-list" id="known-list"></ul>
+        <div class="enroll">
+          <input id="enroll-name" type="text" placeholder="Name (e.g. Mom)" autocomplete="off" />
+          <input id="enroll-files" type="file" accept="image/*" multiple />
+          <button class="btn btn-primary" id="enroll-btn">Upload &amp; Enroll</button>
+          <p class="hint">Tip: add 2–3 clear photos per person for better recognition.</p>
+          <div class="note" id="enroll-note" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="field-label">System health</div>
+        <div class="health" id="health"></div>
+      </div>
+
+      <p class="footer-note">
+        AccessAI PWA · <span id="pwa-state">checking install…</span>
+      </p>
+    </section>
+  </main>
+
+  <!-- ================= Bottom navigation ================= -->
+  <nav class="bottomnav" role="navigation" aria-label="Primary">
+    <button class="nav-btn is-active" data-tab="home" aria-current="page">
+      <span class="nav-ico" aria-hidden="true">🏠</span><span class="nav-lbl">Home</span>
+    </button>
+    <button class="nav-btn" data-tab="live">
+      <span class="nav-ico" aria-hidden="true">📹</span><span class="nav-lbl">Live</span>
+    </button>
+    <button class="nav-btn" data-tab="history">
+      <span class="nav-ico" aria-hidden="true">🕓</span><span class="nav-lbl">History</span>
+    </button>
+    <button class="nav-btn" data-tab="settings">
+      <span class="nav-ico" aria-hidden="true">⚙️</span><span class="nav-lbl">Settings</span>
+    </button>
+  </nav>
+
+  <div class="flash" id="flash" aria-hidden="true"></div>
+
+  <script src="/app/app.js"></script>
+</body>
+</html>

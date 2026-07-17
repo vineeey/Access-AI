@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# AccessAI runtime data (keep folder structure via .gitkeep files)
+data/*
+!data/known_faces/
+!data/history/
+data/known_faces/*
+!data/known_faces/.gitkeep
+data/history/*
+!data/history/.gitkeep
+
+# Secrets (Phase 6: GitHub Models API keys). Keep .env.example, ignore .env.
+.env
+!.env.example
+
+# Databases
+*.db
+
+# Model caches (downloaded at runtime by later phases)
+*.onnx
+*.pt
+.insightface/
+~/.insightface/
+
+# Archived pre-restart build (local only)
+_archive/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
